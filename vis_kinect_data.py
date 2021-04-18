@@ -54,12 +54,12 @@ def parse_h5(filename):
             edge_index = torch.LongTensor([[0, 1, 3, 4],
                                            [1, 2, 4, 5]])
             # position
-            pos = torch.stack([torch.from_numpy(l_shoulder_pos[t]),
-                               torch.from_numpy(l_elbow_pos[t]),
-                               torch.from_numpy(l_wrist_pos[t]),
-                               torch.from_numpy(r_shoulder_pos[t]),
-                               torch.from_numpy(r_elbow_pos[t]),
-                               torch.from_numpy(r_wrist_pos[t])], dim=0)
+            pos = torch.stack([torch.tensor(l_shoulder_pos[t]),
+                               torch.tensor(l_elbow_pos[t]),
+                               torch.tensor(l_wrist_pos[t]),
+                               torch.tensor(r_shoulder_pos[t]),
+                               torch.tensor(r_elbow_pos[t]),
+                               torch.tensor(r_wrist_pos[t])], dim=0)
             # edge attributes
             edge_attr = []
             for edge in edge_index.permute(1, 0):
@@ -129,9 +129,10 @@ def parse_h5(filename):
         # create animation
         lines = [ax.plot([], [], [], 'royalblue', marker='o')[0] for i in range(data_list[0].edge_index.shape[1])]
         total_frames = len(data_list)
-        ani = animation.FuncAnimation(fig, run, np.arange(total_frames), interval=50)
+        ani = animation.FuncAnimation(fig, run, np.arange(total_frames), interval=50,repeat=False)
         plt.show()
     return data_list
 
 if __name__ == '__main__':
-    parse_h5(filename='/home/ddq/Downloads/h5/total_mocap_data_YuMi.h5')
+    # parse_h5(filename='/home/yu/PycharmProjects/MotionTransfer-master-Yu-comment/data/source/sign/h5/total_mocap_data_YuMi.h5')
+    parse_h5(filename='/home/yu/PycharmProjects/MotionTransfer-master-Yu-comment/test.h5')
