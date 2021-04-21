@@ -129,7 +129,7 @@ def parse_h5(filename):
         # create animation
         lines = [ax.plot([], [], [], 'royalblue', marker='o')[0] for i in range(data_list[0].edge_index.shape[1])]
         total_frames = len(data_list)
-        ani = animation.FuncAnimation(fig, run, np.arange(total_frames), interval=50,repeat=False)
+        ani = animation.FuncAnimation(fig, run, np.arange(total_frames), interval=50,repeat=True)
         plt.show()
     return data_list
 
