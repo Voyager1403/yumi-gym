@@ -7,14 +7,16 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import mpl_toolkits.mplot3d.axes3d as p3
 import numpy as np
-
-
+from numpy.linalg import inv
+from math import cos,radians
 def parse_h5(filename):
     # data_list = []
     h5_file = h5py.File(filename, 'r')
     # print(filename, h5_file.keys())
     for key in h5_file.keys():
         data_list = []
+        l_wrist_direction_pos_list=[]
+        r_wrist_direction_pos_list=[]
         print(key)
         # position data
         l_shoulder_pos = h5_file[key + '/l_up_pos'][:]
@@ -30,13 +32,27 @@ def parse_h5(filename):
         r_elbow_quat = R.from_quat(h5_file[key + '/r_fr_quat'][:])
         l_wrist_quat = R.from_quat(h5_file[key + '/l_hd_quat'][:])
         r_wrist_quat = R.from_quat(h5_file[key + '/r_hd_quat'][:])
+        # rotation matrix data    四元数转换为3x3旋转矩阵？
+        l_shoulder_matrix = l_shoulder_quat.as_matrix()
+        r_shoulder_matrix = r_shoulder_quat.as_matrix()
+        l_elbow_matrix = l_elbow_quat.as_matrix()
+        r_elbow_matrix = r_elbow_quat.as_matrix()
+        l_wrist_matrix = l_wrist_quat.as_matrix()
+        r_wrist_matrix = r_wrist_quat.as_matrix()
+
+        # transform to local coordinates    ？
+        l_wrist_matrix = l_wrist_matrix * inv(l_elbow_matrix)
+        r_wrist_matrix = r_wrist_matrix * inv(r_elbow_matrix)
+        l_elbow_matrix = l_elbow_matrix * inv(l_shoulder_matrix)
+        r_elbow_matrix = r_elbow_matrix * inv(r_shoulder_matrix)
+
         # euler data
-        l_shoulder_euler = l_shoulder_quat.as_euler('xyz', degrees=True)
-        r_shoulder_euler = r_shoulder_quat.as_euler('xyz', degrees=True)
-        l_elbow_euler = l_elbow_quat.as_euler('xyz', degrees=True)
-        r_elbow_euler = r_elbow_quat.as_euler('xyz', degrees=True)
-        l_wrist_euler = l_wrist_quat.as_euler('xyz', degrees=True)
-        r_wrist_euler = r_wrist_quat.as_euler('xyz', degrees=True)
+        l_shoulder_euler = R.from_matrix(l_shoulder_matrix).as_euler('zyx', degrees=True)
+        r_shoulder_euler = R.from_matrix(r_shoulder_matrix).as_euler('zyx', degrees=True)
+        l_elbow_euler = R.from_matrix(l_elbow_matrix).as_euler('zyx', degrees=True)
+        r_elbow_euler = R.from_matrix(r_elbow_matrix).as_euler('zyx', degrees=True)
+        l_wrist_euler = R.from_matrix(l_wrist_matrix).as_euler('zyx', degrees=True)
+        r_wrist_euler = R.from_matrix(r_wrist_matrix).as_euler('zyx', degrees=True)
         # print(l_shoulder_pos.shape, r_shoulder_pos.shape, l_elbow_pos.shape, r_elbow_pos.shape, l_wrist_pos.shape, r_wrist_pos.shape)
         
         total_frames = l_shoulder_pos.shape[0]
@@ -53,6 +69,15 @@ def parse_h5(filename):
             # edge index
             edge_index = torch.LongTensor([[0, 1, 3, 4],
                                            [1, 2, 4, 5]])
+
+            #计算wrist后的一小段距离，用来表示方向
+            l_wrist_direction_line=np.array([cos(i)/10 for i in l_wrist_euler[t]])
+            r_wrist_direction_line = np.array([cos(i)/10 for i in r_wrist_euler[t]])
+            l_wrist_direction_pos=l_wrist_pos[t]+l_wrist_direction_line
+            r_wrist_direction_pos=r_wrist_pos[t]+r_wrist_direction_line
+            l_wrist_direction_pos_list.append(l_wrist_direction_pos)
+            r_wrist_direction_pos_list.append(r_wrist_direction_pos)
+
             # position
             pos = torch.stack([torch.tensor(l_shoulder_pos[t]),
                                torch.tensor(l_elbow_pos[t]),
@@ -105,15 +130,32 @@ def parse_h5(filename):
                         offset=offset)
             # print(data)
             data_list.append(data)
+
+
         def run(t):
             pos = data_list[t].pos
             edge_index = data_list[t].edge_index
-            for line, edge in zip(lines, edge_index.permute(1, 0)):
-                line_x = [pos[edge[0]][0], pos[edge[1]][0]]
-                line_y = [pos[edge[0]][1], pos[edge[1]][1]]
-                line_z = [pos[edge[0]][2], pos[edge[1]][2]]
-                line.set_data(np.array([line_x, line_y]))
-                line.set_3d_properties(np.array(line_z))
+            edge= edge_index.permute(1, 0)
+            for id,line in zip(range(6),lines):
+                if(id<4):
+                    line_x = [pos[edge[id][0]][0], pos[edge[id][1]][0],]
+                    line_y = [pos[edge[id][0]][1], pos[edge[id][1]][1],]
+                    line_z = [pos[edge[id][0]][2], pos[edge[id][1]][2],]
+                    line.set_data(np.array([line_x, line_y]))
+                    line.set_3d_properties(np.array(line_z))
+                if(id==4):
+                    line_x = [l_wrist_pos[t][0], l_wrist_direction_pos_list[t][0],]
+                    line_y = [l_wrist_pos[t][1], l_wrist_direction_pos_list[t][1],]
+                    line_z = [l_wrist_pos[t][2], l_wrist_direction_pos_list[t][2],]
+                    line.set_data(np.array([line_x, line_y]))
+                    line.set_3d_properties(np.array(line_z))
+                if(id==5):
+                    line_x = [r_wrist_pos[t][0], r_wrist_direction_pos_list[t][0],]
+                    line_y = [r_wrist_pos[t][1], r_wrist_direction_pos_list[t][1],]
+                    line_z = [r_wrist_pos[t][2], r_wrist_direction_pos_list[t][2],]
+                    line.set_data(np.array([line_x, line_y]))
+                    line.set_3d_properties(np.array(line_z))
+
             return lines
         # attach 3D axis to figure
         fig = plt.figure()
@@ -127,9 +169,9 @@ def parse_h5(filename):
         ax.set_zlim3d([-0.5, 0])
         ax.set_zlabel('Z')
         # create animation
-        lines = [ax.plot([], [], [], 'royalblue', marker='o')[0] for i in range(data_list[0].edge_index.shape[1])]
+        lines = [ax.plot([], [], [], 'royalblue', marker='o')[0] for i in range(data_list[0].edge_index.shape[1]+2)]
         total_frames = len(data_list)
-        ani = animation.FuncAnimation(fig, run, np.arange(total_frames), interval=50,repeat=True)
+        ani = animation.FuncAnimation(fig, run, np.arange(total_frames), interval=1000,repeat=True)
         plt.show()
     return data_list
 
