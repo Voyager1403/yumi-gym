@@ -130,6 +130,8 @@ g1.create_dataset(name="/group1/l_fr_quat",shape=(frame,4))
 g1.create_dataset(name="/group1/r_fr_quat",shape=(frame,4))
 g1.create_dataset(name="/group1/l_hd_quat",shape=(frame,4))
 g1.create_dataset(name="/group1/r_hd_quat",shape=(frame,4))
+g1.create_dataset(name="/group1/l_glove_angle", data=np.zeros((frame,15)))#这里假设group1已经存在
+g1.create_dataset(name="/group1/r_glove_angle", data=np.zeros((frame,15)))
 
 parse_h5(g1)
 
