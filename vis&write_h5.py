@@ -10,7 +10,26 @@ import numpy as np
 import time
 from body_movement_vis import pyKinect
 import os
+# 导入 socket、sys 模块
+import socket
+import sys
+import numpy
+import time
 
+# 获取虚拟机主机地址(从VMware player的windows虚拟机中，终端执行arp -a，即可看到windows的ip)
+host = "172.16.184.128"
+
+# 设置端口号
+port = 9999
+# 创建 socket 对象
+s = socket.socket(socket.AF_INET, 1)
+# 连接服务，指定主机和端口
+s.connect((host, port))
+s.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 600)
+# 查看修改后发送接收缓冲区大小
+recv_buff = s.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
+send_buff = s.getsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF)
+print(f'修改后接收缓冲区大小：{recv_buff}。修改后发送缓冲区大小：{send_buff}')
 
 
 edge_index = torch.LongTensor([[0, 2, 1, 3],
@@ -64,6 +83,40 @@ def parse_h5(g1):
         print('frame ' + str(t))
         # time.sleep(0.1)
 
+        #read quat from wiseglove
+        # 接收小于 1024 字节的数据
+        msg = s.recv(2304)
+        lst = msg.split(b"\x00")  # 按照每段信息的结尾标志进行分割
+        lst = list(filter(lambda x: x != b'', lst))#把split后产生的空元素过滤掉
+        lst = [item.decode('utf-8').strip() for item in lst]
+        # # lst=lst[2:-2]#切掉首位部分信息，防止发送不全导致的片段缺失
+        lst = [item.split("**") for item in lst]#按照指定的标志拆分数据
+        lst = [list(filter(lambda x: x != "", item)) for item in lst]#去掉""
+        lst = [list(filter(lambda x: x != "-", item)) for item in lst]#去掉"-"
+        # lst = lst[-1]
+
+        l_hand_data = []
+        l_wrist_quat = []
+        for item in lst:
+            if item != []:
+                if item[0].startswith("l_hand_data"):
+                    tmp_lst = item[0][item[0].find("l_hand_data") + len("l_hand_data"):].strip()#把数据部分截出来
+                    tmp_lst = tmp_lst.replace("*", "")#防止有单独出现的*
+                    tmp_lst=tmp_lst.split(" ") if len(tmp_lst.split(" "))==19 else None#if it has complete data format, then take it
+                    if tmp_lst != None : l_hand_data = list(map(float, tmp_lst))#format change: str->float
+
+                if item[0].startswith("l_wrist_quat"):
+                    tmp_lst = item[0][item[0].find("l_wrist_quat") + len("l_wrist_quat"):].strip()#把数据部分截出来
+                    tmp_lst=tmp_lst.replace("*","")#防止有单独出现的*
+
+                    tmp_lst = tmp_lst.split(" ") if len(tmp_lst.split(" ")) == 4 else None#if it has complete data format, then take it
+                    if tmp_lst != None : l_wrist_quat = list(map(float, tmp_lst))#format change: str->float
+
+        # if l_hand_data != [] and len(l_hand_data)==19 : print ("l_hand_data",l_hand_data,end="\n")
+        if l_wrist_quat != [] and len(l_wrist_quat) == 4: print("l_wrist_quat", l_wrist_quat, end="\n")
+
+
+
         g1["/group1/l_up_pos"][t] = l_shoulder_pos.tolist()
         g1["/group1/r_up_pos"][t] = r_shoulder_pos.tolist()
         g1["/group1/l_fr_pos"][t] = l_elbow_pos.tolist()
@@ -74,7 +127,14 @@ def parse_h5(g1):
         g1["/group1/r_up_quat"][t] = r_shoulder_quat
         g1["/group1/l_fr_quat"][t] = l_elbow_quat
         g1["/group1/r_fr_quat"][t] = r_elbow_quat
-        g1["/group1/l_hd_quat"][t] = l_wrist_quat
+
+        if l_wrist_quat != [] and len(l_wrist_quat) == 4: #if has complete data
+            g1["/group1/l_hd_quat"][t] = l_wrist_quat
+            print("write"+str(l_wrist_quat))
+        else:
+            g1["/group1/l_hd_quat"][t] =np.zeros(4).tolist()# else return all zero
+            print("write None")
+        # g1["/group1/l_hd_quat"][t] = np.zeros(4).tolist()
         g1["/group1/r_hd_quat"][t] = r_wrist_quat
 
 
@@ -110,10 +170,10 @@ def parse_h5(g1):
 
     return data_list
 
-frame=500
+frame=200
 
 pyKinect.init()
-for i in range(5):#录制5段动作
+for i in range(1):#录制5段动作
     hf = h5py.File(os.path.join("/home/yu/PycharmProjects/MotionTransfer-master-Yu-comment/", 'kinect_h5/random'+str(i)+'.h5'), 'w')
 
     g1 = hf.create_group('group1')
@@ -138,3 +198,4 @@ for i in range(5):#录制5段动作
 
 pyKinect.deinit()
 hf.close()
+s.close()
