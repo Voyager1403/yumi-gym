@@ -71,12 +71,20 @@ def parse_h5(filename):
                                            [1, 2, 4, 5]])
 
             #计算wrist后的一小段距离，用来表示方向
-            l_wrist_direction_line=np.array([cos(i)/10 for i in l_wrist_euler[t]])
-            r_wrist_direction_line = np.array([cos(i)/10 for i in r_wrist_euler[t]])
-            l_wrist_direction_pos=l_wrist_pos[t]+l_wrist_direction_line
-            r_wrist_direction_pos=r_wrist_pos[t]+r_wrist_direction_line
-            l_wrist_direction_pos_list.append(l_wrist_direction_pos)
-            r_wrist_direction_pos_list.append(r_wrist_direction_pos)
+            #version 1.0
+            # l_wrist_direction_line=np.array([cos(i)/10 for i in l_wrist_euler[t]])
+            # r_wrist_direction_line = np.array([cos(i)/10 for i in r_wrist_euler[t]])
+            # l_wrist_direction_pos=l_wrist_pos[t]+l_wrist_direction_line
+            # r_wrist_direction_pos=r_wrist_pos[t]+r_wrist_direction_line
+            # l_wrist_direction_pos_list.append(l_wrist_direction_pos)
+            # r_wrist_direction_pos_list.append(r_wrist_direction_pos)
+            #version2.0
+            l_hand_vector=np.matmul(np.array(l_elbow_pos[t]-l_wrist_pos[t]).reshape((1,3)),l_wrist_matrix[t])#left小臂vector x 手腕相当于小臂的旋转矩阵
+            r_hand_vector=np.matmul(np.array(r_elbow_pos[t]-r_elbow_pos[t]).reshape((1,3)),r_wrist_matrix[t])#right小臂vector x 手腕相当于小臂的旋转矩阵
+            l_wrist_direction_pos=l_wrist_pos[t]+l_hand_vector#计算末端pos
+            r_wrist_direction_pos=r_wrist_pos[t]+r_hand_vector
+            l_wrist_direction_pos_list.append(l_wrist_direction_pos.reshape(3))
+            r_wrist_direction_pos_list.append(r_wrist_direction_pos.reshape(3))
 
             # position
             pos = torch.stack([torch.tensor(l_shoulder_pos[t]),
@@ -171,10 +179,10 @@ def parse_h5(filename):
         # create animation
         lines = [ax.plot([], [], [], 'royalblue', marker='o')[0] for i in range(data_list[0].edge_index.shape[1]+2)]
         total_frames = len(data_list)
-        ani = animation.FuncAnimation(fig, run, np.arange(total_frames), interval=1000,repeat=True)
+        ani = animation.FuncAnimation(fig, run, np.arange(total_frames), interval=100,repeat=False)
         plt.show()
     return data_list
 
 if __name__ == '__main__':
     # parse_h5(filename='/home/yu/PycharmProjects/MotionTransfer-master-Yu-comment/data/source/sign/h5/total_mocap_data_YuMi.h5')
-    parse_h5(filename='/home/yu/PycharmProjects/MotionTransfer-master-Yu-comment/test.h5')
+    parse_h5(filename='/home/yu/PycharmProjects/MotionTransfer-master-Yu-comment/kinect_h5/random0.h5')
