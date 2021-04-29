@@ -62,7 +62,7 @@ def parse_h5(g1):
         r_wrist_quat.append(kinect_quat[5])
 
         print('frame ' + str(t))
-        time.sleep(0.1)
+        # time.sleep(0.1)
 
         g1["/group1/l_up_pos"][t] = l_shoulder_pos.tolist()
         g1["/group1/r_up_pos"][t] = r_shoulder_pos.tolist()
@@ -110,30 +110,31 @@ def parse_h5(g1):
 
     return data_list
 
-frame=50
+frame=500
 
 pyKinect.init()
-hf = h5py.File(os.path.join("/home/yu/PycharmProjects/MotionTransfer-master-Yu-comment/", 'test.h5'), 'w')
+for i in range(5):#录制5段动作
+    hf = h5py.File(os.path.join("/home/yu/PycharmProjects/MotionTransfer-master-Yu-comment/", 'kinect_h5/random'+str(i)+'.h5'), 'w')
 
-g1 = hf.create_group('group1')
-# parse_h5(filename='/home/yu/PycharmProjects/MotionTransfer-master-Yu-comment/data/source/sign/h5/total_mocap_data_YuMi.h5')
+    g1 = hf.create_group('group1')
+    # parse_h5(filename='/home/yu/PycharmProjects/MotionTransfer-master-Yu-comment/data/source/sign/h5/total_mocap_data_YuMi.h5')
 
-g1.create_dataset(name="/group1/l_up_pos", shape=(frame,3))
-g1.create_dataset(name="/group1/r_up_pos", shape=(frame,3))
-g1.create_dataset(name="/group1/l_fr_pos", shape=(frame,3))
-g1.create_dataset(name="/group1/r_fr_pos", shape=(frame,3))
-g1.create_dataset(name="/group1/l_hd_pos", shape=(frame,3))
-g1.create_dataset(name="/group1/r_hd_pos", shape=(frame,3))
-g1.create_dataset(name="/group1/l_up_quat",shape=(frame,4))
-g1.create_dataset(name="/group1/r_up_quat",shape=(frame,4))
-g1.create_dataset(name="/group1/l_fr_quat",shape=(frame,4))
-g1.create_dataset(name="/group1/r_fr_quat",shape=(frame,4))
-g1.create_dataset(name="/group1/l_hd_quat",shape=(frame,4))
-g1.create_dataset(name="/group1/r_hd_quat",shape=(frame,4))
-g1.create_dataset(name="/group1/l_glove_angle", data=np.zeros((frame,15)))#这里假设group1已经存在
-g1.create_dataset(name="/group1/r_glove_angle", data=np.zeros((frame,15)))
+    g1.create_dataset(name="/group1/l_up_pos", shape=(frame,3))
+    g1.create_dataset(name="/group1/r_up_pos", shape=(frame,3))
+    g1.create_dataset(name="/group1/l_fr_pos", shape=(frame,3))
+    g1.create_dataset(name="/group1/r_fr_pos", shape=(frame,3))
+    g1.create_dataset(name="/group1/l_hd_pos", shape=(frame,3))
+    g1.create_dataset(name="/group1/r_hd_pos", shape=(frame,3))
+    g1.create_dataset(name="/group1/l_up_quat",shape=(frame,4))
+    g1.create_dataset(name="/group1/r_up_quat",shape=(frame,4))
+    g1.create_dataset(name="/group1/l_fr_quat",shape=(frame,4))
+    g1.create_dataset(name="/group1/r_fr_quat",shape=(frame,4))
+    g1.create_dataset(name="/group1/l_hd_quat",shape=(frame,4))
+    g1.create_dataset(name="/group1/r_hd_quat",shape=(frame,4))
+    g1.create_dataset(name="/group1/l_glove_angle", data=np.zeros((frame,15)))#这里假设group1已经存在
+    g1.create_dataset(name="/group1/r_glove_angle", data=np.zeros((frame,15)))
 
-parse_h5(g1)
+    parse_h5(g1)
 
 pyKinect.deinit()
 hf.close()
