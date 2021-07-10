@@ -95,10 +95,15 @@ class YumiEnv(gym.Env):
     def reset(self):
         p.resetSimulation()
         self.step_counter = 0
+        #载入yumi
         self.yumiUid = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)),
             "assets/yumi_with_hands.urdf"), useFixedBase=True, flags=p.URDF_USE_SELF_COLLISION+p.URDF_USE_SELF_COLLISION_EXCLUDE_ALL_PARENTS)
-        # self.tableUid = p.loadURDF(os.path.join(pybullet_data.getDataPath(),
-        #     "table/table.urdf"), basePosition=[0,0,-0.65])
+        #载入地面
+        self.planeUid = p.loadURDF(os.path.join(pybullet_data.getDataPath(),
+            "plane.urdf"), basePosition=[0,0,-0.65])
+        #载入桌子
+        self.tableUid = p.loadURDF(os.path.join(pybullet_data.getDataPath(), "table/table.urdf"),
+                   basePosition=[0.5, 0, -0.65])
         p.setGravity(0,0,-10)
         p.setPhysicsEngineParameter(numSolverIterations=150)
         p.setTimeStep(1./240.)
