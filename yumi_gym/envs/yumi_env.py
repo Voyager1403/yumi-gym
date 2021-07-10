@@ -12,6 +12,7 @@ class YumiEnv(gym.Env):
         super(YumiEnv, self).__init__()
         p.connect(p.GUI)
         p.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=90, cameraPitch=-20, cameraTargetPosition=[0,0,0.1])
+        p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0) # 只显示GUI，不显示其他工具栏
         self.step_counter = 0
         self.joints = ['yumi_joint_1_l',
             'yumi_joint_2_l',
